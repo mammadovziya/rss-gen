@@ -1,0 +1,322 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>RSS Builder</title>
+    <script>
+      (() => {
+        const savedTheme = localStorage.getItem("rss-builder-theme") || "auto";
+        const mode = ["auto", "light", "dark"].includes(savedTheme) ? savedTheme : "auto";
+        const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+        const theme = mode === "auto" ? (prefersDark ? "dark" : "light") : mode;
+        document.documentElement.dataset.themeMode = mode;
+        document.documentElement.dataset.theme = theme;
+        document.documentElement.style.colorScheme = theme;
+      })();
+    </script>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <header class="topbar">
+        <div class="brand">
+          <div class="brand-mark">RSS</div>
+          <div>
+            <h1 data-i18n="appTitle">RSS Builder</h1>
+            <p data-i18n="appSubtitle">Local feed generator</p>
+          </div>
+        </div>
+        <div class="topbar-actions">
+          <label class="language-picker" for="uiLanguageSelect">
+            <span data-i18n="uiLanguage">Language</span>
+            <select id="uiLanguageSelect" aria-label="Language">
+              <option value="en">English</option>
+              <option value="ru">Русский</option>
+              <option value="es">Español</option>
+              <option value="zh">中文</option>
+              <option value="tr">Türkçe</option>
+              <option value="az">Azərbaycanca</option>
+            </select>
+          </label>
+          <div class="theme-picker" role="group" aria-label="Theme">
+            <span class="theme-label" data-i18n="theme">Theme</span>
+            <div class="theme-options" role="radiogroup" aria-label="Theme">
+              <label>
+                <input type="radio" name="themeMode" value="auto" checked />
+                <span data-i18n="themeAuto">Auto</span>
+              </label>
+              <label>
+                <input type="radio" name="themeMode" value="light" />
+                <span data-i18n="themeLight">Light</span>
+              </label>
+              <label>
+                <input type="radio" name="themeMode" value="dark" />
+                <span data-i18n="themeDark">Dark</span>
+              </label>
+            </div>
+          </div>
+          <button class="button secondary" id="newFeedButton" type="button" data-i18n="newFeed">New Feed</button>
+        </div>
+      </header>
+
+      <main class="workspace">
+        <aside class="panel saved-panel">
+          <div class="panel-heading compact">
+            <div>
+              <h2 data-i18n="savedFeeds">Saved Feeds</h2>
+              <p data-i18n="savedFeedsMeta">Local recipes</p>
+            </div>
+          </div>
+          <div class="privacy-card" id="privacyCard">
+            <strong data-i18n="privacyStatus">Privacy status</strong>
+            <p data-i18n="privacyLoading">Checking local privacy settings...</p>
+          </div>
+          <div class="backup-actions" aria-label="Backup actions">
+            <button class="mini-button" id="exportBackupButton" type="button" data-i18n="exportBackup">Export</button>
+            <label class="mini-button import-button" for="importBackupInput">
+              <span data-i18n="importBackup">Import</span>
+              <input id="importBackupInput" type="file" accept="application/json,.json" hidden />
+            </label>
+          </div>
+          <div class="feed-list" id="feedList"></div>
+        </aside>
+
+        <form class="panel source-panel" id="feedForm">
+          <div class="panel-heading">
+            <div>
+              <h2 data-i18n="buildFeed">Build Feed</h2>
+              <p id="activeFeedLabel">Unsaved feed</p>
+            </div>
+            <div class="actions">
+              <button class="button secondary" id="deleteButton" type="button" disabled data-i18n="delete">Delete</button>
+              <button class="button primary" id="saveButton" type="button" data-i18n="save">Save</button>
+            </div>
+          </div>
+
+          <section class="section-block">
+            <div class="section-heading">
+              <span class="step-number">1</span>
+              <h3 data-i18n="source">Source</h3>
+            </div>
+            <label class="field wide">
+              <span data-i18n="websiteUrl">Website URL</span>
+              <input name="url" type="url" required placeholder="https://example.com/news" />
+            </label>
+            <div class="inline-actions">
+              <button class="button primary" id="openBuilderButton" type="button" data-i18n="openPage">Open Page</button>
+              <button class="button secondary" id="clearSelectionsButton" type="button" data-i18n="clearPicks">Clear Picks</button>
+            </div>
+          </section>
+
+          <section class="section-block builder-panel" aria-label="Visual Builder">
+            <div class="section-heading spread">
+              <div>
+                <div class="section-title-row">
+                  <span class="step-number">2</span>
+                  <h3 data-i18n="visualBuilder">Visual Builder</h3>
+                </div>
+                <p id="builderStatus">Choose Feed Card</p>
+              </div>
+              <strong class="current-pick" id="builderPickLabel">Feed Card</strong>
+            </div>
+
+            <div class="pick-toolbar" id="pickToolbar">
+              <button class="pick-button active" type="button" data-pick="item" data-field-label="item">Feed Card</button>
+              <button class="pick-button" type="button" data-pick="title" data-field-label="title">Title</button>
+              <button class="pick-button" type="button" data-pick="link" data-field-label="link">Link</button>
+              <button class="pick-button" type="button" data-pick="summary" data-field-label="summary">Summary</button>
+              <button class="pick-button" type="button" data-pick="image" data-field-label="image">Image</button>
+              <button class="pick-button" type="button" data-pick="date" data-field-label="date">Date</button>
+              <button class="pick-button add" type="button" id="addCustomFieldButton" data-i18n="customData">Custom Data</button>
+            </div>
+
+            <div class="custom-field-panel" id="customFieldPanel" hidden>
+              <label class="field">
+                <span data-i18n="fieldName">Field Name</span>
+                <input id="customFieldName" type="text" autocomplete="off" placeholder="author" />
+              </label>
+              <fieldset class="custom-mode-group">
+                <legend data-i18n="customMode">Value Source</legend>
+                <div class="segmented-control">
+                  <label>
+                    <input type="radio" name="customFieldMode" value="selector" checked />
+                    <span data-i18n="pickFromPage">Pick from page</span>
+                  </label>
+                  <label>
+                    <input type="radio" name="customFieldMode" value="static" />
+                    <span data-i18n="fixedValue">Fixed value</span>
+                  </label>
+                </div>
+              </fieldset>
+              <label class="field custom-value-field" id="customValueField" hidden>
+                <span data-i18n="customValue">Value</span>
+                <input id="customFieldValue" type="text" autocomplete="off" placeholder="Manual value" />
+              </label>
+              <div class="inline-actions">
+                <button class="button primary" id="confirmCustomFieldButton" type="button" data-i18n="pickField">Pick Field</button>
+                <button class="button secondary" id="cancelCustomFieldButton" type="button" data-i18n="cancel">Cancel</button>
+              </div>
+            </div>
+
+            <div class="selection-list" id="selectionList"></div>
+
+            <div class="builder-frame-wrap" id="builderFrameWrap" hidden>
+              <div class="builder-frame-bar">
+                <span id="builderHint" data-i18n="builderHint">Scroll inside the page and click one repeated card.</span>
+                <span id="builderFrameMeta">Ready</span>
+              </div>
+              <iframe id="builderFrame" title="Visual feed builder" sandbox="allow-scripts allow-forms allow-popups"></iframe>
+            </div>
+          </section>
+
+          <details class="details-panel">
+            <summary data-i18n="feedSettings">Feed Settings</summary>
+            <div class="grid two">
+              <label class="field">
+                <span data-i18n="name">Name</span>
+                <input name="name" type="text" placeholder="Example News" />
+              </label>
+              <label class="field">
+                <span data-i18n="maxItems">Max Items</span>
+                <input name="maxItems" type="number" min="1" max="100" value="25" />
+              </label>
+            </div>
+            <div class="grid two">
+              <label class="field">
+                <span data-i18n="feedTitle">Feed Title</span>
+                <input name="feedTitle" type="text" />
+              </label>
+              <label class="field">
+                <span data-i18n="feedLanguage">Feed Language</span>
+                <input name="language" type="text" value="en" />
+              </label>
+            </div>
+            <label class="field wide">
+              <span data-i18n="description">Description</span>
+              <textarea name="feedDescription" rows="3"></textarea>
+            </label>
+            <div class="grid two">
+              <label class="field">
+                <span data-i18n="author">Author</span>
+                <input name="author" type="text" />
+              </label>
+              <label class="field">
+                <span data-i18n="feedImageUrl">Feed Image URL</span>
+                <input name="feedImage" type="url" />
+              </label>
+            </div>
+          </details>
+
+          <details class="details-panel">
+            <summary data-i18n="advanced">Advanced</summary>
+            <div class="grid two align-end">
+              <div class="field">
+                <span data-i18n="renderMode">Render Mode</span>
+                <div class="segmented" role="radiogroup" aria-label="Render mode">
+                  <label><input type="radio" name="mode" value="auto" checked /><span data-i18n="auto">Auto</span></label>
+                  <label><input type="radio" name="mode" value="static" /><span data-i18n="static">Static</span></label>
+                  <label><input type="radio" name="mode" value="browser" /><span data-i18n="browser">Browser</span></label>
+                </div>
+              </div>
+              <label class="field">
+                <span data-i18n="cacheMinutes">Cache Minutes</span>
+                <input name="cacheMinutes" type="number" min="0" max="1440" value="30" />
+              </label>
+            </div>
+            <div class="grid two">
+              <label class="field">
+                <span data-i18n="includePatterns">Include Patterns</span>
+                <textarea name="includePatterns" rows="3"></textarea>
+              </label>
+              <label class="field">
+                <span data-i18n="excludePatterns">Exclude Patterns</span>
+                <textarea name="excludePatterns" rows="3" placeholder="privacy, login, /sponsored/i"></textarea>
+              </label>
+            </div>
+            <div class="grid two">
+              <label class="field">
+                <span data-i18n="waitForSelector">Wait For Selector</span>
+                <input name="waitForSelector" type="text" placeholder=".article-list" />
+              </label>
+              <label class="field">
+                <span data-i18n="extraWaitMs">Extra Wait Ms</span>
+                <input name="waitMs" type="number" min="0" max="10000" value="0" />
+              </label>
+            </div>
+            <label class="field wide">
+              <span data-i18n="userAgent">User Agent</span>
+              <input name="userAgent" type="text" />
+            </label>
+
+            <div class="selector-grid">
+              <label class="field">
+                <span data-i18n="field.item">Feed Card</span>
+                <input name="itemSelector" type="text" placeholder="article" />
+              </label>
+              <label class="field">
+                <span data-i18n="field.title">Title</span>
+                <input name="titleSelector" type="text" placeholder="h2, .title" />
+              </label>
+              <label class="field">
+                <span data-i18n="field.link">Link</span>
+                <input name="linkSelector" type="text" placeholder="a[href]" />
+              </label>
+              <label class="field">
+                <span data-i18n="field.summary">Summary</span>
+                <input name="summarySelector" type="text" placeholder="p, .excerpt" />
+              </label>
+              <label class="field">
+                <span data-i18n="field.date">Date</span>
+                <input name="dateSelector" type="text" placeholder="time" />
+              </label>
+              <label class="field">
+                <span data-i18n="field.image">Image</span>
+                <input name="imageSelector" type="text" placeholder="img" />
+              </label>
+            </div>
+          </details>
+
+          <div class="form-footer">
+            <button class="button primary" id="previewButton" type="submit" data-i18n="preview">Preview</button>
+            <button class="button secondary" id="copyAdHocButton" type="button" disabled data-i18n="copyAdHoc">Copy RSS URL</button>
+          </div>
+        </form>
+
+        <section class="panel preview-panel">
+          <div class="panel-heading">
+            <div>
+              <h2 data-i18n="preview">Preview</h2>
+              <p id="previewMeta">Ready</p>
+            </div>
+            <button class="button secondary" id="copySavedButton" type="button" disabled data-i18n="copySaved">Copy Saved RSS</button>
+          </div>
+          <div class="notice" id="message" hidden></div>
+          <div class="rss-link" id="rssLink" hidden></div>
+          <div class="preview-output" id="previewOutput">
+            <div class="empty-state">
+              <h3 data-i18n="emptyPreviewTitle">No preview yet</h3>
+              <p data-i18n="emptyPreviewText">Open a page or run preview.</p>
+            </div>
+          </div>
+        </section>
+      </main>
+
+      <footer class="site-footer">
+        <div class="footer-inner">
+          <div class="footer-brand">
+            <span class="footer-product">RSS Generator</span>
+            <span class="footer-separator" aria-hidden="true"></span>
+            <span class="footer-credit" data-i18n="footer">Built by Ziya</span>
+          </div>
+          <nav class="footer-links" aria-label="Footer links">
+            <a href="https://github.com/ziyamm08" target="_blank" rel="noreferrer" aria-label="Ziya on GitHub">GitHub</a>
+            <a href="https://github.com/ziyamm08/rss-generator" target="_blank" rel="noreferrer" aria-label="RSS Generator repository on GitHub">Source</a>
+          </nav>
+        </div>
+      </footer>
+    </div>
+
+    <script src="/app.js" type="module"></script>
+  </body>
+</html>

@@ -1,0 +1,10 @@
+node_modules/
+dist/
+data/feeds.json
+.env
+npm-debug.log*
+server*.log
+mini-server.*
+tcpcheck.cs
+playwright-report/
+test-results/
