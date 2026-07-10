@@ -1,6 +1,7 @@
-import type { Request } from "express";
 import { sourceConfigSchema, type SourceConfig } from "./types.js";
 import { splitPatternList } from "./utils.js";
+
+type QueryLike = Record<string, string | string[] | undefined>;
 
 function first(value: unknown): string | undefined {
   if (Array.isArray(value)) return first(value[0]);
@@ -26,7 +27,16 @@ function customFieldsFromQuery(value: unknown): unknown[] {
   }
 }
 
-export function sourceConfigFromQuery(query: Request["query"]): SourceConfig {
+export function queryFromSearchParams(searchParams: URLSearchParams): QueryLike {
+  const query: QueryLike = {};
+  for (const key of new Set(searchParams.keys())) {
+    const values = searchParams.getAll(key);
+    query[key] = values.length > 1 ? values : values[0];
+  }
+  return query;
+}
+
+export function sourceConfigFromQuery(query: QueryLike): SourceConfig {
   const payload = {
     url: first(query.url),
     name: first(query.name),
