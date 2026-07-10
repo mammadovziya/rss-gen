@@ -1,12 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
-import { ExtractionCache } from "../cache.js";
-import { config } from "../config.js";
-import { extractFeedItems } from "../extraction/extractor.js";
-import { FeedHealthStore, type FeedHealth } from "../health.js";
-import { assertSafeTargetUrl, UnsafeTargetError } from "../security.js";
-import { FeedStore } from "../storage.js";
-import type { FeedRecipe, SourceConfig } from "../types.js";
+import { ExtractionCache } from "../cache";
+import { config } from "../config";
+import { extractFeedItems } from "../extraction/extractor";
+import { FeedHealthStore, type FeedHealth } from "../health";
+import { assertSafeTargetUrl, UnsafeTargetError } from "../security";
+import { FeedStore } from "../storage";
+import type { FeedRecipe, SourceConfig } from "../types";
 
 let store: FeedStore | undefined;
 let healthStore: FeedHealthStore | undefined;

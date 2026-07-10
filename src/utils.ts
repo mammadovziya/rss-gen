@@ -1,5 +1,5 @@
 import crypto from "node:crypto";
-import type { SourceConfig } from "./types.js";
+import type { SourceConfig } from "./types";
 
 const TRACKING_PARAMS = [
   "utm_source",

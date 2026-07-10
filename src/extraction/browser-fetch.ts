@@ -1,8 +1,8 @@
 import { chromium, type Browser } from "playwright";
-import { config } from "../config.js";
-import { assertSafeTargetUrl } from "../security.js";
-import type { BrowserOptions } from "../types.js";
-import type { FetchedDocument } from "./static-fetch.js";
+import { config } from "../config";
+import { assertSafeTargetUrl } from "../security";
+import type { BrowserOptions } from "../types";
+import type { FetchedDocument } from "./static-fetch";
 
 let browser: Browser | undefined;
 

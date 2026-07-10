@@ -2,8 +2,8 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import crypto from "node:crypto";
 import slugify from "slugify";
-import { config } from "./config.js";
-import { feedRecipeSchema, sourceConfigSchema, type FeedRecipe, type SourceConfig, type StoredFeedsFile } from "./types.js";
+import { config } from "./config";
+import { feedRecipeSchema, sourceConfigSchema, type FeedRecipe, type SourceConfig, type StoredFeedsFile } from "./types";
 
 const STORE_FILE = "feeds.json";
 

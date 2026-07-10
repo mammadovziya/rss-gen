@@ -1,6 +1,6 @@
-import { config } from "../config.js";
-import { assertSafeTargetUrl } from "../security.js";
-import type { BrowserOptions } from "../types.js";
+import { config } from "../config";
+import { assertSafeTargetUrl } from "../security";
+import type { BrowserOptions } from "../types";
 
 export type FetchedDocument = {
   html: string;

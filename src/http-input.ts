@@ -1,5 +1,5 @@
-import { sourceConfigSchema, type SourceConfig } from "./types.js";
-import { splitPatternList } from "./utils.js";
+import { sourceConfigSchema, type SourceConfig } from "./types";
+import { splitPatternList } from "./utils";
 
 type QueryLike = Record<string, string | string[] | undefined>;
 

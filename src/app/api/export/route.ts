@@ -1,5 +1,5 @@
 import { NextRequest } from "next/server";
-import { getStore, handleError, rateLimit } from "../../../lib/server-runtime.js";
+import { getStore, handleError, rateLimit } from "../../../lib/server-runtime";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";

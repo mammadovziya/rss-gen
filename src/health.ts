@@ -1,7 +1,7 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 import { z } from "zod";
-import { config } from "./config.js";
+import { config } from "./config";
 
 const HEALTH_FILE = "feed-health.json";
 

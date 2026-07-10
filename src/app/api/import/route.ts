@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
-import { getCache, getHealthStore, getStore, handleError, rateLimit } from "../../../lib/server-runtime.js";
+import { getCache, getHealthStore, getStore, handleError, rateLimit } from "../../../lib/server-runtime";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";

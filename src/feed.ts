@@ -1,6 +1,6 @@
 import RSS from "rss";
-import type { ExtractionResult, SourceConfig } from "./types.js";
-import { absoluteUrl, normalizeText, truncateText } from "./utils.js";
+import type { ExtractionResult, SourceConfig } from "./types";
+import { absoluteUrl, normalizeText, truncateText } from "./utils";
 
 export function renderRssXml(source: SourceConfig, result: ExtractionResult, feedUrl: string): string {
   const siteUrl = result.finalUrl || source.url;

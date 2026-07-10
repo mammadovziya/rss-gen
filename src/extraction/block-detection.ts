@@ -1,5 +1,5 @@
-import type { ExtractionIssue } from "../types.js";
-import { normalizeText } from "../utils.js";
+import type { ExtractionIssue } from "../types";
+import { normalizeText } from "../utils";
 
 const BLOCK_PATTERNS = [
   /access denied/i,

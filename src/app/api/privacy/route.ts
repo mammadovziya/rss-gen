@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { privacySummary } from "../../../security.js";
+import { privacySummary } from "../../../security";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";

@@ -1,6 +1,6 @@
 # RSS Gen
 
-RSS Gen is a local, Docker-ready RSS feed builder for websites that do not offer a feed of their own.
+RSS Gen is a local, Docker-ready RSS feed builder for websites that do not offer a feed of their own. It is built with Next.js App Router, React, TypeScript, and local Playwright Chromium rendering.
 
 Open a page, click the repeated card, choose the title/link/image/date fields with your cursor, and RSS Gen turns that into a reusable RSS recipe. It can also render JavaScript-heavy pages with local Chromium, add custom metadata, test saved feeds, and export/import your local feed library.
 
@@ -205,6 +205,8 @@ visual-builder
 self-hosted
 local-first
 docker
+nextjs
+react
 typescript
 playwright
 web-scraping

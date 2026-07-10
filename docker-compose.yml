@@ -8,7 +8,6 @@ services:
       PORT: "3000"
       HOST: 0.0.0.0
       DATA_DIR: /data
-      LOG_LEVEL: info
     volumes:
       - ./data:/data
     restart: unless-stopped

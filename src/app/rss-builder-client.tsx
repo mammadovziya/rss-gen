@@ -25,6 +25,7 @@ import {
   Upload,
   X
 } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { CustomFieldConfig, ExtractionResult, FeedRecipe, SourceConfig } from "@/types";
 import type { FeedHealth } from "@/health";
@@ -52,7 +53,17 @@ type CustomDraft = {
   value: string;
 };
 
-const standardFields: Array<{ field: SelectorField; label: string; icon: typeof Link2 }> = [
+type SelectionRow = {
+  field: PickField;
+  label: string;
+  icon: LucideIcon;
+  selector: string;
+  sample?: string;
+  custom: boolean;
+  mode: "selector" | "static";
+};
+
+const standardFields: Array<{ field: SelectorField; label: string; icon: LucideIcon }> = [
   { field: "item", label: "Feed Card", icon: Archive },
   { field: "title", label: "Title", icon: FileInput },
   { field: "link", label: "Link", icon: Link2 },
@@ -141,6 +152,10 @@ function customIsComplete(field: CustomFieldConfig) {
   return field.mode === "static" ? Boolean(field.value) : Boolean(field.selector);
 }
 
+function isSelectorField(field: PickField): field is SelectorField {
+  return !field.startsWith("custom:");
+}
+
 export function RssBuilderClient() {
   const builderFrameRef = useRef<HTMLIFrameElement>(null);
   const importInputRef = useRef<HTMLInputElement>(null);
@@ -173,11 +188,12 @@ export function RssBuilderClient() {
     return selections;
   }, [source.customFields, source.selectors]);
 
-  const customRows = useMemo(
+  const customRows = useMemo<SelectionRow[]>(
     () =>
       source.customFields.map((field) => ({
         field: `custom:${field.name}` as PickField,
         label: field.name,
+        icon: Sparkles,
         selector: field.mode === "static" ? field.value : field.selector,
         sample: field.mode === "static" ? `Fixed value: ${field.value}` : selectionSamples[`custom:${field.name}`],
         mode: field.mode,
@@ -186,7 +202,7 @@ export function RssBuilderClient() {
     [selectionSamples, source.customFields]
   );
 
-  const selectionRows = useMemo(
+  const selectionRows = useMemo<SelectionRow[]>(
     () => [
       ...standardFields.map(({ field, label, icon }) => ({
         field: field as PickField,
@@ -418,7 +434,7 @@ export function RssBuilderClient() {
               : field
           )
         }));
-      } else {
+      } else if (isSelectorField(selection.field)) {
         updateSelector(selection.field, selection.selector);
       }
       setSelectionSamples((current) => ({ ...current, [selection.field]: selection.sample || selection.selector }));
@@ -561,13 +577,15 @@ export function RssBuilderClient() {
 
       <main className="workspace">
         <section className="hero-panel">
-          <div className="hero-copy">
-            <div className="brand-chip">
-              <Rss size={15} />
-              Local RSS builder
+          <div className="tool-heading">
+            <div>
+              <div className="brand-chip">
+                <Rss size={15} />
+                RSS Gen
+              </div>
+              <h1>Visual feed builder</h1>
             </div>
-            <h1>Generate RSS feeds from pages that never had one.</h1>
-            <p>Open a website, click one repeated card, choose the fields visually, and save a reusable feed recipe.</p>
+            <span className="heading-meta">Local only</span>
           </div>
 
           <div className="url-card">
@@ -580,6 +598,7 @@ export function RssBuilderClient() {
                 value={source.url}
                 onChange={(event) => setNestedSource("url", event.target.value)}
                 placeholder="https://example.com/news"
+                aria-label="Website URL"
                 type="url"
               />
             </div>
@@ -691,7 +710,7 @@ export function RssBuilderClient() {
 
             <div className="selection-list">
               {selectionRows.map((row) => {
-                const Icon = "icon" in row && row.icon ? row.icon : Sparkles;
+                const Icon = row.icon;
                 return (
                   <div className="selection-row" key={row.field}>
                     <div className="selection-label">

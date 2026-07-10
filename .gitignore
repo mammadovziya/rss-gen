@@ -5,6 +5,7 @@ data/feeds.json
 .env
 npm-debug.log*
 server*.log
+next-dev*.log
 mini-server.*
 tcpcheck.cs
 playwright-report/

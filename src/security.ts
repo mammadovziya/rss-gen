@@ -1,6 +1,6 @@
 import dns from "node:dns/promises";
 import net from "node:net";
-import { config } from "./config.js";
+import { config } from "./config";
 
 const hostnameCache = new Map<string, Promise<string[]>>();
 

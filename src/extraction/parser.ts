@@ -8,7 +8,7 @@ import type {
   ExtractionIssue,
   ExtractionResult,
   SourceConfig
-} from "../types.js";
+} from "../types";
 import {
   absoluteUrl,
   canonicalItemUrl,
@@ -18,9 +18,9 @@ import {
   sameRegistrableHost,
   toDateString,
   truncateText
-} from "../utils.js";
-import { detectBlocked } from "./block-detection.js";
-import type { FetchedDocument } from "./static-fetch.js";
+} from "../utils";
+import { detectBlocked } from "./block-detection";
+import type { FetchedDocument } from "./static-fetch";
 
 const CONTAINER_SELECTOR = [
   "article",

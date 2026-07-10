@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { adHocFeedUrl, extractWithCache, handleError, rateLimit } from "../../../lib/server-runtime.js";
-import { sourceConfigSchema } from "../../../types.js";
+import { adHocFeedUrl, extractWithCache, handleError, rateLimit } from "../../../lib/server-runtime";
+import { sourceConfigSchema } from "../../../types";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";

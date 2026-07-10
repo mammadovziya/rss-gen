@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createBuilderSnapshot } from "../../../extraction/builder-snapshot.js";
-import { handleError, rateLimit } from "../../../lib/server-runtime.js";
-import { sourceConfigSchema } from "../../../types.js";
+import { createBuilderSnapshot } from "../../../extraction/builder-snapshot";
+import { handleError, rateLimit } from "../../../lib/server-runtime";
+import { sourceConfigSchema } from "../../../types";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";

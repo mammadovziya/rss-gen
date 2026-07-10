@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getCache, getHealthStore, getStore, handleError, rateLimit, absoluteRequestUrl } from "../../../lib/server-runtime.js";
-import { sourceConfigSchema } from "../../../types.js";
+import { getCache, getHealthStore, getStore, handleError, rateLimit, absoluteRequestUrl } from "../../../lib/server-runtime";
+import { sourceConfigSchema } from "../../../types";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";

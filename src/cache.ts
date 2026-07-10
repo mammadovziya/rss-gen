@@ -1,5 +1,5 @@
-import type { ExtractionResult, SourceConfig } from "./types.js";
-import { stableHash } from "./utils.js";
+import type { ExtractionResult, SourceConfig } from "./types";
+import { stableHash } from "./utils";
 
 type CacheEntry = {
   expiresAt: number;

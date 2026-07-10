@@ -1,7 +1,7 @@
 import { NextRequest } from "next/server";
-import { renderRssXml } from "../../feed.js";
-import { queryFromSearchParams, sourceConfigFromQuery } from "../../http-input.js";
-import { absoluteRequestUrl, extractWithCache, handleError, rateLimit, rssResponse } from "../../lib/server-runtime.js";
+import { renderRssXml } from "../../feed";
+import { queryFromSearchParams, sourceConfigFromQuery } from "../../http-input";
+import { absoluteRequestUrl, extractWithCache, handleError, rateLimit, rssResponse } from "../../lib/server-runtime";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";

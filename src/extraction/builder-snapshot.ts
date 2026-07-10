@@ -1,9 +1,9 @@
 import * as cheerio from "cheerio";
-import type { ExtractionIssue, SourceConfig } from "../types.js";
-import { normalizeText } from "../utils.js";
-import { detectBlocked } from "./block-detection.js";
-import { fetchBrowserDocument } from "./browser-fetch.js";
-import { fetchStaticDocument, type FetchedDocument } from "./static-fetch.js";
+import type { ExtractionIssue, SourceConfig } from "../types";
+import { normalizeText } from "../utils";
+import { detectBlocked } from "./block-detection";
+import { fetchBrowserDocument } from "./browser-fetch";
+import { fetchStaticDocument, type FetchedDocument } from "./static-fetch";
 
 export type BuilderSnapshot = {
   html: string;

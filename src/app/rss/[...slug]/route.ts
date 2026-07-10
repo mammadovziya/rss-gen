@@ -1,6 +1,6 @@
 import { NextRequest } from "next/server";
-import { renderRssXml } from "../../../feed.js";
-import { absoluteRequestUrl, extractWithCache, getStore, handleError, rateLimit, rssResponse } from "../../../lib/server-runtime.js";
+import { renderRssXml } from "../../../feed";
+import { absoluteRequestUrl, extractWithCache, getStore, handleError, rateLimit, rssResponse } from "../../../lib/server-runtime";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";

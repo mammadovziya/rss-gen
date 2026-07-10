@@ -1,7 +1,7 @@
-import type { ExtractionIssue, ExtractionResult, SourceConfig } from "../types.js";
-import { fetchBrowserDocument } from "./browser-fetch.js";
-import { parseDocument } from "./parser.js";
-import { fetchStaticDocument } from "./static-fetch.js";
+import type { ExtractionIssue, ExtractionResult, SourceConfig } from "../types";
+import { fetchBrowserDocument } from "./browser-fetch";
+import { parseDocument } from "./parser";
+import { fetchStaticDocument } from "./static-fetch";
 
 export async function extractFeedItems(source: SourceConfig): Promise<ExtractionResult> {
   if (source.mode === "browser") {

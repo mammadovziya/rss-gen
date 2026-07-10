@@ -22,6 +22,8 @@
     "self-hosted",
     "local-first",
     "docker",
+    "nextjs",
+    "react",
     "typescript",
     "playwright",
     "web-scraping"
@@ -52,6 +54,8 @@
   "devDependencies": {
     "@types/jsdom": "^28.0.3",
     "@types/node": "^24.0.10",
+    "@types/react": "^19.2.17",
+    "@types/react-dom": "^19.2.3",
     "@types/rss": "^0.0.32",
     "tsx": "^4.20.3",
     "typescript": "^5.8.3",
