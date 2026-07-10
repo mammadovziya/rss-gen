@@ -1,9 +1,32 @@
 {
   "name": "rss-generator",
   "version": "1.0.0",
-  "description": "A fully local, customizable RSS feed generator for websites.",
+  "description": "Local visual RSS feed builder for websites without feeds.",
   "type": "module",
   "main": "dist/server.js",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mammadovziya/rss-gen.git"
+  },
+  "homepage": "https://github.com/mammadovziya/rss-gen#readme",
+  "bugs": {
+    "url": "https://github.com/mammadovziya/rss-gen/issues"
+  },
+  "keywords": [
+    "rss",
+    "rss-feed",
+    "rss-generator",
+    "rss-builder",
+    "feed-generator",
+    "custom-rss",
+    "visual-builder",
+    "self-hosted",
+    "local-first",
+    "docker",
+    "typescript",
+    "playwright",
+    "web-scraping"
+  ],
   "scripts": {
     "dev": "tsx watch src/server.ts",
     "build": "tsc",

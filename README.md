@@ -1,83 +1,104 @@
-# RSS Generator
+# RSS Gen
 
-A fully local, Docker-ready RSS feed generator for websites. It can build ad-hoc RSS feeds or saved feed recipes with a visual point-and-click builder, custom metadata, filters, cache timing, custom item data, and a browser-rendered extraction mode for JavaScript-heavy pages.
+RSS Gen is a local, Docker-ready RSS feed builder for websites that do not offer a feed of their own.
 
-## Privacy Model
+Open a page, click the repeated card, choose the title/link/image/date fields with your cursor, and RSS Gen turns that into a reusable RSS recipe. It can also render JavaScript-heavy pages with local Chromium, add custom metadata, test saved feeds, and export/import your local feed library.
 
-RSS Generator is private-by-default for local use:
+## Highlights
 
-- Binds to `127.0.0.1` by default when run directly.
-- Docker Compose publishes only to `127.0.0.1:3000`.
-- No telemetry, analytics, accounts, cloud storage, or third-party app services.
-- Saved feeds and feed health history stay in the local `DATA_DIR`.
-- Cross-origin browser access is disabled unless `CORS_ORIGIN` is explicitly set.
-- Fetches to localhost, private IPs, link-local ranges, and internal hostnames are blocked by default.
-- Static fetch redirects are validated before following.
-- Browser-rendered mode blocks private-network document/subresource requests.
+- Visual feed builder: pick cards, titles, links, summaries, images, dates, and custom fields by clicking the page.
+- Custom data: extract extra fields from each card or add fixed values without writing selectors.
+- Local first: runs on your machine or inside Docker, with no accounts, telemetry, analytics, or hosted backend.
+- JavaScript support: use static HTML extraction or local Playwright Chromium rendering.
+- Feed recipes: save reusable feeds and expose them at stable local RSS URLs.
+- Ad-hoc feeds: generate a one-off RSS URL directly from query parameters.
+- Health checks: test saved feeds and keep the latest item count, extraction mode, warnings, and errors.
+- Backups: export and import your saved feed recipes as JSON.
+- Filters: include or exclude items with text, URL fragments, or regular expressions.
+- Multilingual UI: English, Russian, Spanish, Chinese, Turkish, and Azerbaijani.
 
-Important: target websites still see the IP address of the machine, server, VPN, or proxy that fetches them. No app can guarantee 100% internet anonymity by itself. Use a trusted network-level proxy/VPN if IP anonymity is required.
-
-## Run Locally
+## Quick Start
 
 ```bash
 npm install
 npm run dev
 ```
 
-Open `http://localhost:3000`.
+Open:
 
-## Visual Builder
+```text
+http://localhost:3000
+```
 
-1. Enter a website URL.
-2. Select `Open Page`.
-3. Pick `Feed Card`, then click one repeated item on the loaded page.
-4. Pick `Title`, `Link`, `Summary`, `Image`, `Date`, or `Custom Data`, then click the matching element inside a card.
-5. Select `Preview`, then `Save`.
-
-The app converts those clicks into selectors for you. The advanced selector fields remain available for difficult pages.
-
-## Run With Docker
+## Docker
 
 ```bash
 docker compose up --build
 ```
 
-The app is exposed only on `http://127.0.0.1:3000`. Saved feed recipes and health checks are stored in `./data` through the Docker volume.
+Docker Compose exposes the app only on:
 
-## Environment
+```text
+http://127.0.0.1:3000
+```
 
-- `PORT`: HTTP port, default `3000`.
-- `HOST`: bind host, default `127.0.0.1`. Use `0.0.0.0` only behind a trusted firewall or reverse proxy.
-- `DATA_DIR`: local storage directory, default `./data`.
-- `CORS_ORIGIN`: optional single allowed browser origin. Empty means same-origin only.
-- `ALLOW_PRIVATE_NETWORK_TARGETS`: set to `true` only if you intentionally need to fetch internal/private network URLs.
-- `RATE_LIMIT_WINDOW_MS`: request rate window, default `60000`.
-- `RATE_LIMIT_MAX`: max API/feed requests per window, default `120`.
-- `DEFAULT_USER_AGENT`: optional generic user agent override.
-- `REQUEST_TIMEOUT_MS`, `BROWSER_TIMEOUT_MS`, `MAX_ITEMS`: extraction limits.
+Saved feeds, backups, and health data are stored in `./data`.
+
+## How It Works
+
+1. Enter a website URL.
+2. Click `Open Page`.
+3. Select `Feed Card`, then click one repeated item in the page preview.
+4. Pick `Title`, `Link`, `Summary`, `Image`, and `Date` by clicking inside the selected card.
+5. Add `Custom Data` when you need extra fields such as price, category, author, source, or a fixed label.
+6. Click `Preview`.
+7. Save the recipe and use the generated RSS URL.
+
+Advanced selector fields are still available when a page needs manual tuning.
 
 ## Feed URLs
 
-- Saved recipe: `http://localhost:3000/rss/<feed-id>.xml`
-- Ad-hoc feed: `http://localhost:3000/feed.xml?url=https%3A%2F%2Fexample.com%2Fnews`
+Saved recipe:
+
+```text
+http://localhost:3000/rss/<feed-id>.xml
+```
+
+Ad-hoc feed:
+
+```text
+http://localhost:3000/feed.xml?url=https%3A%2F%2Fexample.com%2Fnews
+```
+
+## Extraction Modes
+
+- `auto`: tries static HTML first, then local Chromium when the page is blocked, empty, or too sparse.
+- `static`: fast HTML fetch with browser-like request headers.
+- `browser`: local Playwright Chromium rendering for JavaScript-heavy pages.
+
+RSS Gen does not bypass CAPTCHA, login walls, paywalls, robots restrictions, or access-control systems.
 
 ## API
 
 ```http
-POST /api/preview
-POST /api/feeds
-PUT /api/feeds/:id
-GET /api/feeds
-GET /api/feed-health
-POST /api/feeds/:id/test
-GET /api/privacy
-GET /api/export
-POST /api/import
-GET /rss/:id.xml
-GET /feed.xml?url=...
+GET    /health
+GET    /api/privacy
+GET    /api/feeds
+GET    /api/feeds/:id
+POST   /api/preview
+POST   /api/builder-page
+POST   /api/feeds
+PUT    /api/feeds/:id
+DELETE /api/feeds/:id
+GET    /api/feed-health
+POST   /api/feeds/:id/test
+GET    /api/export
+POST   /api/import
+GET    /rss/:id.xml
+GET    /feed.xml?url=...
 ```
 
-Example preview payload:
+Example preview request:
 
 ```json
 {
@@ -87,14 +108,7 @@ Example preview payload:
   "maxItems": 25,
   "cacheMinutes": 30,
   "includePatterns": [],
-  "excludePatterns": ["sponsored"],
-  "customFields": [
-    {
-      "name": "price",
-      "selector": ".price",
-      "attr": "text"
-    }
-  ],
+  "excludePatterns": ["sponsored", "/\\/ads\\//i"],
   "selectors": {
     "item": "article",
     "title": "h2",
@@ -103,6 +117,19 @@ Example preview payload:
     "date": "time",
     "image": "img"
   },
+  "customFields": [
+    {
+      "name": "price",
+      "mode": "selector",
+      "selector": ".price",
+      "attr": "text"
+    },
+    {
+      "name": "source",
+      "mode": "static",
+      "value": "Example"
+    }
+  ],
   "browser": {
     "waitForSelector": "",
     "waitMs": 0,
@@ -119,24 +146,66 @@ Example preview payload:
 }
 ```
 
-## Extraction Modes
+## Configuration
 
-- `auto`: Tries static HTML first, then local Chromium rendering if the page is blocked, empty, or too sparse.
-- `static`: Fast HTML fetch with normal browser-like headers.
-- `browser`: Uses Playwright Chromium locally for JavaScript-rendered pages.
+| Variable | Default | Description |
+| --- | --- | --- |
+| `PORT` | `3000` | HTTP port. |
+| `HOST` | `127.0.0.1` | Bind host for direct Node runs. Use `0.0.0.0` only behind a trusted firewall or reverse proxy. |
+| `DATA_DIR` | `./data` | Local storage directory. |
+| `CORS_ORIGIN` | empty | Optional single allowed browser origin. Empty means same-origin only. |
+| `ALLOW_PRIVATE_NETWORK_TARGETS` | `false` | Allow fetching localhost/private-network targets. Keep disabled unless you intentionally need it. |
+| `RATE_LIMIT_WINDOW_MS` | `60000` | Rate-limit window. |
+| `RATE_LIMIT_MAX` | `120` | Max API/feed requests per window. |
+| `DEFAULT_USER_AGENT` | built in | Optional generic user-agent override. |
+| `REQUEST_TIMEOUT_MS` | built in | Static fetch timeout. |
+| `BROWSER_TIMEOUT_MS` | built in | Browser-rendered fetch timeout. |
+| `MAX_ITEMS` | built in | Maximum extracted items. |
 
-The tool can handle many sites that require JavaScript rendering or precise selectors. It does not bypass CAPTCHA, authentication, paywalls, robots restrictions, or access-control systems.
+## Privacy And Safety
 
-## Feed Health And Backups
+RSS Gen is designed for private local use:
 
-The sidebar shows a privacy summary, import/export controls, and a health badge for each saved feed. Use `Test` to refresh health status, item count, extraction mode, and the last error or warning.
+- Binds to `127.0.0.1` by default when run directly.
+- Docker Compose publishes only to `127.0.0.1:3000`.
+- Stores recipes and feed health data locally in `DATA_DIR`.
+- Blocks localhost, private IPs, link-local ranges, and internal hostnames by default.
+- Validates static fetch redirects before following them.
+- Blocks private-network document and subresource requests in browser mode.
+- Sends no telemetry, analytics, or cloud sync.
 
-Use `Export` to download a local JSON backup. Use `Import` to merge a backup into the current local store.
+Target websites still see the IP address of the machine, server, VPN, or proxy that fetches them. Use a trusted network-level proxy or VPN if IP anonymity matters.
 
-## Verification
+## Development
 
 ```bash
 npm run typecheck
 npm test
 npm run build
+```
+
+The production server starts from:
+
+```bash
+npm start
+```
+
+## Repository Topics
+
+Recommended GitHub topics:
+
+```text
+rss
+rss-feed
+rss-generator
+rss-builder
+feed-generator
+custom-rss
+visual-builder
+self-hosted
+local-first
+docker
+typescript
+playwright
+web-scraping
 ```
