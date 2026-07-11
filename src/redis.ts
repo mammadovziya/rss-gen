@@ -3,6 +3,13 @@ import { config } from "./config";
 
 let redis: Redis | null | undefined;
 
+export class StorageUnavailableError extends Error {
+  constructor() {
+    super("Saved feeds need Upstash Redis on Vercel. Add UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN in Vercel environment variables, then redeploy.");
+    this.name = "StorageUnavailableError";
+  }
+}
+
 export function getRedis(): Redis | null {
   if (!config.upstashRedisUrl || !config.upstashRedisToken) return null;
 
@@ -20,4 +27,10 @@ export function storageKey(name: string): string {
 
 export function storageBackendName(): string {
   return getRedis() ? "Upstash Redis" : "local data directory";
+}
+
+export function assertWritableStorage(): void {
+  if (config.isVercel && !getRedis()) {
+    throw new StorageUnavailableError();
+  }
 }

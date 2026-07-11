@@ -2,7 +2,7 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import { z } from "zod";
 import { config } from "./config";
-import { getRedis, storageKey } from "./redis";
+import { assertWritableStorage, getRedis, storageKey } from "./redis";
 
 const HEALTH_FILE = "feed-health.json";
 const REDIS_HEALTH_KEY = storageKey("feed-health");
@@ -75,6 +75,8 @@ export class FeedHealthStore {
       return feedHealthFileSchema.parse(parsed);
     }
 
+    if (config.isVercel) return { version: 1, entries: {} };
+
     await fs.mkdir(this.dataDir, { recursive: true });
     try {
       return feedHealthFileSchema.parse(JSON.parse(await fs.readFile(this.filePath, "utf8")));
@@ -92,6 +94,8 @@ export class FeedHealthStore {
       await redis.set(REDIS_HEALTH_KEY, store);
       return;
     }
+
+    assertWritableStorage();
 
     await fs.mkdir(this.dataDir, { recursive: true });
     const tempPath = `${this.filePath}.${process.pid}.${Date.now()}.tmp`;

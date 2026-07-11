@@ -3,7 +3,7 @@ import path from "node:path";
 import crypto from "node:crypto";
 import slugify from "slugify";
 import { config } from "./config";
-import { getRedis, storageKey } from "./redis";
+import { assertWritableStorage, getRedis, storageKey } from "./redis";
 import { feedRecipeSchema, sourceConfigSchema, type FeedRecipe, type SourceConfig, type StoredFeedsFile } from "./types";
 
 const STORE_FILE = "feeds.json";
@@ -96,6 +96,8 @@ export class FeedStore {
       return parseStoredFeeds(parsed);
     }
 
+    if (config.isVercel) return { version: 1, feeds: [] };
+
     await fs.mkdir(this.dataDir, { recursive: true });
     try {
       const raw = await fs.readFile(this.filePath, "utf8");
@@ -114,6 +116,8 @@ export class FeedStore {
       await redis.set(REDIS_STORE_KEY, store);
       return;
     }
+
+    assertWritableStorage();
 
     await fs.mkdir(this.dataDir, { recursive: true });
     const tempPath = `${this.filePath}.${process.pid}.${Date.now()}.tmp`;

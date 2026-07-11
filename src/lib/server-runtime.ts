@@ -3,6 +3,7 @@ import { z } from "zod";
 import { ExtractionCache } from "../cache";
 import { config } from "../config";
 import { FeedHealthStore, type FeedHealth } from "../health";
+import { StorageUnavailableError } from "../redis";
 import { assertSafeTargetUrl, UnsafeTargetError } from "../security";
 import { FeedStore } from "../storage";
 import type { FeedRecipe, SourceConfig } from "../types";
@@ -95,6 +96,10 @@ export function rateLimit(request: NextRequest): NextResponse | null {
 export function handleError(error: unknown) {
   if (error instanceof UnsafeTargetError) {
     return NextResponse.json({ error: error.message }, { status: 400 });
+  }
+
+  if (error instanceof StorageUnavailableError) {
+    return NextResponse.json({ error: error.message }, { status: 503 });
   }
 
   if (error instanceof z.ZodError) {
