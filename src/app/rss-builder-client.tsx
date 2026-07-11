@@ -40,14 +40,6 @@ type BuilderSelection = {
   attr?: CustomFieldConfig["attr"];
 };
 
-type PrivacySummary = {
-  hosted: boolean;
-  localOnly: boolean;
-  deployment: string;
-  storage: string;
-  privateNetworkTargets: string;
-};
-
 type CustomDraft = {
   originalName?: string;
   name: string;
@@ -75,6 +67,7 @@ const standardFields: Array<{ field: SelectorField; label: string; icon: LucideI
 ];
 
 const fieldOrder: PickField[] = ["item", "title", "link", "summary", "image", "date"];
+const githubUrl = "https://github.com/mammadovziya/rss-gen";
 const localFeedsKey = "rss-gen.browser-feeds.v1";
 const localFeedPrefix = "browser:";
 const storageSetupMessage = "Saved feeds need Upstash Redis";
@@ -265,12 +258,11 @@ export function RssBuilderClient() {
   const [source, setSource] = useState<SourceConfig>(() => cloneSource());
   const [feeds, setFeeds] = useState<FeedRecipe[]>([]);
   const [feedHealth, setFeedHealth] = useState<Record<string, FeedHealth>>({});
-  const [privacy, setPrivacy] = useState<PrivacySummary | null>(null);
   const [activeFeedId, setActiveFeedId] = useState<string | null>(null);
   const [activePick, setActivePick] = useState<PickField>("item");
   const [selectionSamples, setSelectionSamples] = useState<Record<string, string>>({});
   const [builderHtml, setBuilderHtml] = useState("");
-  const [builderMeta, setBuilderMeta] = useState("Ready");
+  const [builderMeta, setBuilderMeta] = useState("");
   const [preview, setPreview] = useState<ExtractionResult | null>(null);
   const [lastAdHocUrl, setLastAdHocUrl] = useState("");
   const [lastSavedUrl, setLastSavedUrl] = useState("");
@@ -342,19 +334,9 @@ export function RssBuilderClient() {
     }
   }, []);
 
-  const loadPrivacy = useCallback(async () => {
-    try {
-      const payload = await requestJson<{ privacy: PrivacySummary }>("/api/privacy");
-      setPrivacy(payload.privacy);
-    } catch {
-      setPrivacy(null);
-    }
-  }, []);
-
   useEffect(() => {
     void loadFeeds();
-    void loadPrivacy();
-  }, [loadFeeds, loadPrivacy]);
+  }, [loadFeeds]);
 
   const postBuilderState = useCallback(() => {
     const frame = builderFrameRef.current?.contentWindow;
@@ -484,7 +466,7 @@ export function RssBuilderClient() {
         setLastSavedUrl(adHocUrlForSource(feed));
         setSource(cloneSource(feed));
         await loadFeeds();
-        showMessage("Saved in this browser. Add Upstash Redis for permanent hosted /rss URLs.");
+        showMessage("Saved in this browser.");
       } else {
         showMessage(error instanceof Error ? error.message : "Could not save feed.", "error");
       }
@@ -755,9 +737,9 @@ export function RssBuilderClient() {
     <div className={cx("app-frame", lightMode && "light-mode")}>
       <div className="grid-bg" aria-hidden="true" />
       <header className="app-topbar">
-        <button className="icon-button" type="button" aria-label="RSS Gen">
+        <a className="icon-button" href={githubUrl} target="_blank" rel="noreferrer" aria-label="Open GitHub repository">
           <Code2 size={18} />
-        </button>
+        </a>
         <button className="icon-button" type="button" aria-label="Toggle theme" onClick={() => setLightMode((value) => !value)}>
           {lightMode ? <Moon size={18} /> : <Sun size={18} />}
         </button>
@@ -774,7 +756,6 @@ export function RssBuilderClient() {
               </div>
               <span className="tool-kicker">Visual feed builder</span>
             </div>
-            <span className="heading-meta">Vercel ready</span>
           </div>
 
           <div className="url-card">
@@ -801,11 +782,7 @@ export function RssBuilderClient() {
 
         <section className="app-grid">
           <aside className="side-panel">
-            <PanelHeader icon={Lock} title="Saved feeds" meta="Private builder" action={<button className="mini-icon" onClick={resetFeed} type="button"><Plus size={15} /></button>} />
-            <div className="privacy-line">
-              <span className={cx("status-dot", privacy?.hosted && privacy.storage !== "Upstash Redis" && "warn")} />
-              {privacy ? deploymentSummary(privacy) : "Checking deployment"}
-            </div>
+            <PanelHeader icon={Lock} title="Saved feeds" action={<button className="mini-icon" onClick={resetFeed} type="button"><Plus size={15} /></button>} />
             <div className="backup-actions">
               <button className="ghost-button" type="button" onClick={exportBackup}>
                 <Download size={14} /> Export
@@ -1020,9 +997,9 @@ export function RssBuilderClient() {
           </section>
 
           <aside className="preview-panel">
-            <PanelHeader icon={Globe2} title="Preview" meta={preview ? `${preview.items.length} items` : "Ready"} />
+            <PanelHeader icon={Globe2} title="Preview" meta={preview ? `${preview.items.length} items` : undefined} />
             <div className="rss-url-box">
-              <code>{lastSavedUrl || lastAdHocUrl || "Run preview to generate an RSS URL"}</code>
+              <code>{lastSavedUrl || lastAdHocUrl || "RSS URL"}</code>
               <button className="mini-icon" type="button" onClick={() => void copyText(lastSavedUrl || lastAdHocUrl)} disabled={!lastSavedUrl && !lastAdHocUrl}>
                 <Copy size={14} />
               </button>
@@ -1079,7 +1056,10 @@ export function RssBuilderClient() {
         </section>
       </main>
 
-      <footer className="site-footer">Generated by Ziya</footer>
+      <footer className="site-footer">
+        <span>Built by Ziya</span>
+        <a href={githubUrl} target="_blank" rel="noreferrer">GitHub</a>
+      </footer>
     </div>
   );
 }
@@ -1113,7 +1093,7 @@ function PanelHeader({
 }: {
   icon: typeof Link2;
   title: string;
-  meta: string;
+  meta?: string;
   action?: React.ReactNode;
 }) {
   return (
@@ -1123,7 +1103,7 @@ function PanelHeader({
           <Icon size={16} />
         </span>
         <strong>{title}</strong>
-        <em>{meta}</em>
+        {meta && <em>{meta}</em>}
       </div>
       {action}
     </div>
@@ -1157,13 +1137,6 @@ function healthLabel(health?: FeedHealth) {
   if (health.status === "warning") return "Check";
   if (health.status === "error") return "Error";
   return "Unknown";
-}
-
-function deploymentSummary(privacy: PrivacySummary) {
-  if (privacy.hosted && privacy.storage !== "Upstash Redis") {
-    return "Hosted deployment / add Redis for saved feeds";
-  }
-  return `${privacy.deployment} / ${privacy.storage}`;
 }
 
 function healthSummary(health?: FeedHealth) {
