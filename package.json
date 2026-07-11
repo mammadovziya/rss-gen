@@ -1,7 +1,7 @@
 {
   "name": "rss-generator",
   "version": "1.0.0",
-  "description": "Local visual RSS feed builder for websites without feeds.",
+  "description": "Visual RSS feed builder for websites without feeds, ready for Docker and Vercel.",
   "type": "module",
   "repository": {
     "type": "git",
@@ -24,6 +24,8 @@
     "docker",
     "nextjs",
     "react",
+    "vercel",
+    "upstash",
     "typescript",
     "playwright",
     "web-scraping"
@@ -40,6 +42,7 @@
   },
   "dependencies": {
     "@mozilla/readability": "^0.6.0",
+    "@upstash/redis": "^1.38.0",
     "cheerio": "^1.1.2",
     "jsdom": "^26.1.0",
     "lucide-react": "^1.24.0",

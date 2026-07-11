@@ -2,8 +2,10 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import { z } from "zod";
 import { config } from "./config";
+import { getRedis, storageKey } from "./redis";
 
 const HEALTH_FILE = "feed-health.json";
+const REDIS_HEALTH_KEY = storageKey("feed-health");
 
 export const feedHealthSchema = z.object({
   id: z.string().min(1),
@@ -65,6 +67,14 @@ export class FeedHealthStore {
   }
 
   private async read(): Promise<FeedHealthFile> {
+    const redis = getRedis();
+    if (redis) {
+      const rawStore = await redis.get<unknown>(REDIS_HEALTH_KEY);
+      if (!rawStore) return { version: 1, entries: {} };
+      const parsed = typeof rawStore === "string" ? JSON.parse(rawStore) : rawStore;
+      return feedHealthFileSchema.parse(parsed);
+    }
+
     await fs.mkdir(this.dataDir, { recursive: true });
     try {
       return feedHealthFileSchema.parse(JSON.parse(await fs.readFile(this.filePath, "utf8")));
@@ -77,6 +87,12 @@ export class FeedHealthStore {
   }
 
   private async write(store: FeedHealthFile): Promise<void> {
+    const redis = getRedis();
+    if (redis) {
+      await redis.set(REDIS_HEALTH_KEY, store);
+      return;
+    }
+
     await fs.mkdir(this.dataDir, { recursive: true });
     const tempPath = `${this.filePath}.${process.pid}.${Date.now()}.tmp`;
     await fs.writeFile(tempPath, `${JSON.stringify(store, null, 2)}\n`, "utf8");

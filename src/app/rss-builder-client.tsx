@@ -42,7 +42,10 @@ type BuilderSelection = {
 };
 
 type PrivacySummary = {
+  hosted: boolean;
   localOnly: boolean;
+  deployment: string;
+  storage: string;
   privateNetworkTargets: string;
 };
 
@@ -585,7 +588,7 @@ export function RssBuilderClient() {
               </div>
               <h1>Visual feed builder</h1>
             </div>
-            <span className="heading-meta">Local only</span>
+            <span className="heading-meta">Vercel ready</span>
           </div>
 
           <div className="url-card">
@@ -612,10 +615,10 @@ export function RssBuilderClient() {
 
         <section className="app-grid">
           <aside className="side-panel">
-            <PanelHeader icon={Lock} title="Private feeds" meta="Local only" action={<button className="mini-icon" onClick={resetFeed} type="button"><Plus size={15} /></button>} />
+            <PanelHeader icon={Lock} title="Saved feeds" meta="Private builder" action={<button className="mini-icon" onClick={resetFeed} type="button"><Plus size={15} /></button>} />
             <div className="privacy-line">
-              <span className={cx("status-dot", privacy?.localOnly === false && "warn")} />
-              {privacy ? (privacy.localOnly ? "Local-only server" : "Network exposed") : "Checking privacy"}
+              <span className={cx("status-dot", privacy?.hosted && privacy.storage !== "Upstash Redis" && "warn")} />
+              {privacy ? deploymentSummary(privacy) : "Checking deployment"}
             </div>
             <div className="backup-actions">
               <button className="ghost-button" type="button" onClick={exportBackup}>
@@ -969,6 +972,13 @@ function healthLabel(health?: FeedHealth) {
   if (health.status === "warning") return "Check";
   if (health.status === "error") return "Error";
   return "Unknown";
+}
+
+function deploymentSummary(privacy: PrivacySummary) {
+  if (privacy.hosted && privacy.storage !== "Upstash Redis") {
+    return "Hosted deployment / add Redis for saved feeds";
+  }
+  return `${privacy.deployment} / ${privacy.storage}`;
 }
 
 function healthSummary(health?: FeedHealth) {

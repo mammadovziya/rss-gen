@@ -8,10 +8,14 @@ let browser: Browser | undefined;
 
 async function getBrowser(): Promise<Browser> {
   if (!browser || !browser.isConnected()) {
-    browser = await chromium.launch({
-      headless: true,
-      args: ["--no-sandbox", "--disable-dev-shm-usage"]
-    });
+    browser = config.browserWsEndpoint
+      ? config.browserWsMode === "playwright"
+        ? await chromium.connect(config.browserWsEndpoint)
+        : await chromium.connectOverCDP(config.browserWsEndpoint)
+      : await chromium.launch({
+          headless: true,
+          args: ["--no-sandbox", "--disable-dev-shm-usage"]
+        });
   }
   return browser;
 }

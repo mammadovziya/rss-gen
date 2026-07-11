@@ -3,9 +3,11 @@ import path from "node:path";
 import crypto from "node:crypto";
 import slugify from "slugify";
 import { config } from "./config";
+import { getRedis, storageKey } from "./redis";
 import { feedRecipeSchema, sourceConfigSchema, type FeedRecipe, type SourceConfig, type StoredFeedsFile } from "./types";
 
 const STORE_FILE = "feeds.json";
+const REDIS_STORE_KEY = storageKey("feeds");
 
 export class FeedStore {
   private readonly filePath: string;
@@ -86,14 +88,18 @@ export class FeedStore {
   }
 
   private async read(): Promise<StoredFeedsFile> {
+    const redis = getRedis();
+    if (redis) {
+      const rawStore = await redis.get<unknown>(REDIS_STORE_KEY);
+      if (!rawStore) return { version: 1, feeds: [] };
+      const parsed = typeof rawStore === "string" ? JSON.parse(rawStore) : rawStore;
+      return parseStoredFeeds(parsed);
+    }
+
     await fs.mkdir(this.dataDir, { recursive: true });
     try {
       const raw = await fs.readFile(this.filePath, "utf8");
-      const parsed = JSON.parse(raw) as StoredFeedsFile;
-      return {
-        version: 1,
-        feeds: parsed.feeds.map((feed) => feedRecipeSchema.parse(feed))
-      };
+      return parseStoredFeeds(JSON.parse(raw));
     } catch (error) {
       if ((error as NodeJS.ErrnoException).code === "ENOENT") {
         return { version: 1, feeds: [] };
@@ -103,6 +109,12 @@ export class FeedStore {
   }
 
   private async write(store: StoredFeedsFile): Promise<void> {
+    const redis = getRedis();
+    if (redis) {
+      await redis.set(REDIS_STORE_KEY, store);
+      return;
+    }
+
     await fs.mkdir(this.dataDir, { recursive: true });
     const tempPath = `${this.filePath}.${process.pid}.${Date.now()}.tmp`;
     await fs.writeFile(tempPath, `${JSON.stringify(store, null, 2)}\n`, "utf8");
@@ -131,4 +143,12 @@ export class FeedStore {
     }
     return nextId;
   }
+}
+
+function parseStoredFeeds(raw: unknown): StoredFeedsFile {
+  const store = raw as StoredFeedsFile;
+  return {
+    version: 1,
+    feeds: Array.isArray(store?.feeds) ? store.feeds.map((feed) => feedRecipeSchema.parse(feed)) : []
+  };
 }

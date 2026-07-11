@@ -1,6 +1,7 @@
 import dns from "node:dns/promises";
 import net from "node:net";
 import { config } from "./config";
+import { storageBackendName } from "./redis";
 
 const hostnameCache = new Map<string, Promise<string[]>>();
 
@@ -62,13 +63,17 @@ export function isLoopbackBindHost(host: string): boolean {
 }
 
 export function privacySummary() {
+  const localOnly = isLoopbackBindHost(config.host) && !config.isVercel;
+
   return {
     bindHost: config.host,
-    localOnly: isLoopbackBindHost(config.host),
+    hosted: config.isVercel,
+    localOnly,
+    deployment: config.isVercel ? "Vercel deployment" : localOnly ? "local instance" : "self-hosted instance",
     cors: config.corsOrigin ? `restricted to ${config.corsOrigin}` : "same-origin only",
     privateNetworkTargets: config.allowPrivateNetworkTargets ? "allowed by environment" : "blocked",
     telemetry: "none",
-    storage: "local data directory",
+    storage: storageBackendName(),
     networkAnonymity:
       "Direct fetches still reveal this machine or server IP to target websites. Use a trusted network-level proxy or VPN if you need IP anonymity."
   };

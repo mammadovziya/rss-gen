@@ -3,6 +3,10 @@ dist/
 .next/
 data/feeds.json
 .env
+.env.local
+.env*.local
+!.env.example
+.vercel/
 npm-debug.log*
 server*.log
 next-dev*.log

@@ -17,9 +17,15 @@ export const config = {
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126 Safari/537.36",
   requestTimeoutMs: Number(process.env.REQUEST_TIMEOUT_MS ?? 18000),
   browserTimeoutMs: Number(process.env.BROWSER_TIMEOUT_MS ?? 30000),
+  browserWsEndpoint: process.env.BROWSER_WS_ENDPOINT?.trim() || "",
+  browserWsMode: process.env.BROWSER_WS_MODE?.trim().toLowerCase() === "playwright" ? "playwright" : "cdp",
   maxItems: Number(process.env.MAX_ITEMS ?? 100),
   allowPrivateNetworkTargets: booleanEnv("ALLOW_PRIVATE_NETWORK_TARGETS"),
   corsOrigin: process.env.CORS_ORIGIN?.trim() || "",
   rateLimitWindowMs: Number(process.env.RATE_LIMIT_WINDOW_MS ?? 60_000),
-  rateLimitMax: Number(process.env.RATE_LIMIT_MAX ?? 120)
+  rateLimitMax: Number(process.env.RATE_LIMIT_MAX ?? 120),
+  isVercel: process.env.VERCEL === "1" || process.env.VERCEL === "true",
+  storagePrefix: process.env.STORAGE_PREFIX?.trim() || "rss-gen",
+  upstashRedisUrl: process.env.UPSTASH_REDIS_REST_URL?.trim() || "",
+  upstashRedisToken: process.env.UPSTASH_REDIS_REST_TOKEN?.trim() || ""
 };
