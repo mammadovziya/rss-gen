@@ -16,7 +16,6 @@ import {
   Lock,
   Moon,
   Plus,
-  RefreshCw,
   Rss,
   Save,
   Sparkles,
@@ -765,14 +764,15 @@ export function RssBuilderClient() {
       </header>
 
       <main className="workspace">
-        <section className="hero-panel">
+        <section className="hero-panel" aria-labelledby="app-title">
+          <h1 className="sr-only" id="app-title">RSS Gen visual feed builder</h1>
           <div className="tool-heading">
-            <div>
+            <div className="brand-lockup">
               <div className="brand-chip">
                 <Rss size={15} />
                 RSS Gen
               </div>
-              <h1>Visual feed builder</h1>
+              <span className="tool-kicker">Visual feed builder</span>
             </div>
             <span className="heading-meta">Vercel ready</span>
           </div>
@@ -1030,8 +1030,7 @@ export function RssBuilderClient() {
             {!preview ? (
               <div className="empty-preview">
                 <Rss size={26} />
-                <h3>No preview yet</h3>
-                <p>Open a page or run preview to inspect extracted feed items.</p>
+                <h3>No preview</h3>
               </div>
             ) : (
               <div className="preview-content">
