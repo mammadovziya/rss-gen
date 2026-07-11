@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { ExtractionCache } from "../cache";
 import { config } from "../config";
-import { extractFeedItems } from "../extraction/extractor";
 import { FeedHealthStore, type FeedHealth } from "../health";
 import { assertSafeTargetUrl, UnsafeTargetError } from "../security";
 import { FeedStore } from "../storage";
@@ -27,12 +26,17 @@ export function getCache() {
   return cache;
 }
 
+async function extractFeedItemsLazy(source: SourceConfig) {
+  const extractor = await import("../extraction/extractor");
+  return extractor.extractFeedItems(source);
+}
+
 export async function extractWithCache(source: SourceConfig) {
   await assertSafeTargetUrl(source.url);
   const extractionCache = getCache();
   const cached = extractionCache.get(source);
   if (cached) return cached;
-  const result = await extractFeedItems(source);
+  const result = await extractFeedItemsLazy(source);
   extractionCache.set(source, result);
   return result;
 }
@@ -40,7 +44,7 @@ export async function extractWithCache(source: SourceConfig) {
 export async function runFeedHealthCheck(feed: FeedRecipe): Promise<FeedHealth> {
   const checkedAt = new Date().toISOString();
   try {
-    const result = await extractFeedItems(feed);
+    const result = await extractFeedItemsLazy(feed);
     const entry: FeedHealth = {
       id: feed.id,
       status: result.items.length > 0 && !result.blocked ? "ok" : "warning",

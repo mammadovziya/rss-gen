@@ -1,10 +1,11 @@
 import type { ExtractionIssue, ExtractionResult, SourceConfig } from "../types";
-import { fetchBrowserDocument } from "./browser-fetch";
+import { browserUnavailableMessage, canUseBrowserRendering } from "./browser-runtime";
 import { parseDocument } from "./parser";
 import { fetchStaticDocument } from "./static-fetch";
 
 export async function extractFeedItems(source: SourceConfig): Promise<ExtractionResult> {
   if (source.mode === "browser") {
+    if (!canUseBrowserRendering()) throw new Error(browserUnavailableMessage());
     return parseDocument(await fetchBrowserDocument(source.url, source.browser), source);
   }
 
@@ -30,6 +31,22 @@ export async function extractFeedItems(source: SourceConfig): Promise<Extraction
 
   if (!shouldTryBrowser && staticResult) {
     return staticResult;
+  }
+
+  if (!canUseBrowserRendering()) {
+    if (staticResult) {
+      return {
+        ...staticResult,
+        issues: [
+          ...staticResult.issues,
+          {
+            code: "browser_unavailable",
+            message: browserUnavailableMessage()
+          }
+        ]
+      };
+    }
+    throw staticError;
   }
 
   try {
@@ -63,4 +80,9 @@ export async function extractFeedItems(source: SourceConfig): Promise<Extraction
       ]
     };
   }
+}
+
+async function fetchBrowserDocument(url: string, browser: SourceConfig["browser"]) {
+  const browserFetch = await import("./browser-fetch");
+  return browserFetch.fetchBrowserDocument(url, browser);
 }

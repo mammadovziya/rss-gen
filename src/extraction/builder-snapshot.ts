@@ -1,8 +1,8 @@
 import * as cheerio from "cheerio";
 import type { ExtractionIssue, SourceConfig } from "../types";
 import { normalizeText } from "../utils";
+import { browserUnavailableMessage, canUseBrowserRendering } from "./browser-runtime";
 import { detectBlocked } from "./block-detection";
-import { fetchBrowserDocument } from "./browser-fetch";
 import { fetchStaticDocument, type FetchedDocument } from "./static-fetch";
 
 export type BuilderSnapshot = {
@@ -31,7 +31,13 @@ async function fetchForBuilder(source: SourceConfig): Promise<FetchedDocument> {
     return fetchStaticDocument(source.url, source.browser);
   }
 
+  if (!canUseBrowserRendering()) {
+    if (source.mode === "browser") throw new Error(browserUnavailableMessage());
+    return fetchStaticDocument(source.url, source.browser);
+  }
+
   try {
+    const { fetchBrowserDocument } = await import("./browser-fetch");
     return await fetchBrowserDocument(source.url, source.browser);
   } catch (error) {
     if (source.mode === "browser") throw error;
