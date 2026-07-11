@@ -76,6 +76,9 @@ const standardFields: Array<{ field: SelectorField; label: string; icon: LucideI
 ];
 
 const fieldOrder: PickField[] = ["item", "title", "link", "summary", "image", "date"];
+const localFeedsKey = "rss-gen.browser-feeds.v1";
+const localFeedPrefix = "browser:";
+const storageSetupMessage = "Saved feeds need Upstash Redis";
 
 const emptySource: SourceConfig = {
   url: "",
@@ -149,6 +152,104 @@ async function requestJson<T>(url: string, init?: RequestInit): Promise<T> {
   const response = await fetch(url, init);
   if (!response.ok) throw new Error(await responseError(response));
   return response.json() as Promise<T>;
+}
+
+function readBrowserFeeds(): FeedRecipe[] {
+  if (typeof window === "undefined") return [];
+  try {
+    const payload = JSON.parse(localStorage.getItem(localFeedsKey) || "{\"feeds\":[]}") as { feeds?: FeedRecipe[] };
+    return Array.isArray(payload.feeds) ? payload.feeds.filter(isFeedRecipeLike) : [];
+  } catch {
+    return [];
+  }
+}
+
+function writeBrowserFeeds(feeds: FeedRecipe[]) {
+  localStorage.setItem(localFeedsKey, JSON.stringify({ version: 1, feeds }));
+}
+
+function isFeedRecipeLike(value: unknown): value is FeedRecipe {
+  const feed = value as FeedRecipe;
+  return Boolean(feed?.id && feed?.url && feed?.createdAt && feed?.updatedAt && feed?.selectors && feed?.browser && feed?.feed);
+}
+
+function isBrowserFeedId(id: string | null | undefined) {
+  return Boolean(id?.startsWith(localFeedPrefix));
+}
+
+function mergeFeeds(serverFeeds: FeedRecipe[], browserFeeds: FeedRecipe[]) {
+  const seen = new Set<string>();
+  return [...browserFeeds, ...serverFeeds].filter((feed) => {
+    if (seen.has(feed.id)) return false;
+    seen.add(feed.id);
+    return true;
+  });
+}
+
+function saveBrowserFeed(source: SourceConfig, activeId: string | null): FeedRecipe {
+  const feeds = readBrowserFeeds();
+  const existing = activeId && isBrowserFeedId(activeId) ? feeds.find((feed) => feed.id === activeId) : undefined;
+  const now = new Date().toISOString();
+  const recipe = {
+    ...cloneSource(source),
+    id: existing?.id || `${localFeedPrefix}${crypto.randomUUID()}`,
+    createdAt: existing?.createdAt || now,
+    updatedAt: now
+  } as FeedRecipe;
+  const nextFeeds = existing ? feeds.map((feed) => (feed.id === existing.id ? recipe : feed)) : [recipe, ...feeds];
+  writeBrowserFeeds(nextFeeds);
+  return recipe;
+}
+
+function deleteBrowserFeed(id: string) {
+  writeBrowserFeeds(readBrowserFeeds().filter((feed) => feed.id !== id));
+}
+
+function browserFeedById(id: string) {
+  return readBrowserFeeds().find((feed) => feed.id === id);
+}
+
+function isStorageSetupError(error: unknown) {
+  return error instanceof Error && error.message.includes(storageSetupMessage);
+}
+
+function adHocUrlForSource(source: SourceConfig): string {
+  const params = new URLSearchParams({
+    url: source.url,
+    mode: source.mode,
+    maxItems: String(source.maxItems),
+    cacheMinutes: String(source.cacheMinutes)
+  });
+
+  if (source.name) params.set("name", source.name);
+  if (source.preferExistingFeeds) params.set("preferExistingFeeds", "true");
+  if (source.includePatterns.length > 0) params.set("include", source.includePatterns.join(","));
+  if (source.excludePatterns.length > 0) params.set("exclude", source.excludePatterns.join(","));
+  if (source.customFields.length > 0) params.set("customFields", JSON.stringify(source.customFields));
+
+  const selectorParams: Array<[string, string]> = [
+    ["itemSelector", source.selectors.item],
+    ["titleSelector", source.selectors.title],
+    ["linkSelector", source.selectors.link],
+    ["summarySelector", source.selectors.summary],
+    ["dateSelector", source.selectors.date],
+    ["imageSelector", source.selectors.image],
+    ["waitForSelector", source.browser.waitForSelector],
+    ["waitMs", String(source.browser.waitMs || "")],
+    ["userAgent", source.browser.userAgent],
+    ["feedTitle", source.feed.title],
+    ["feedDescription", source.feed.description],
+    ["language", source.feed.language],
+    ["author", source.feed.author],
+    ["feedImage", source.feed.image],
+    ["copyright", source.feed.copyright]
+  ];
+
+  for (const [key, value] of selectorParams) {
+    if (value) params.set(key, value);
+  }
+
+  return `${location.origin}/feed.xml?${params.toString()}`;
 }
 
 function customIsComplete(field: CustomFieldConfig) {
@@ -228,12 +329,18 @@ export function RssBuilderClient() {
   }, []);
 
   const loadFeeds = useCallback(async () => {
-    const [feedPayload, healthPayload] = await Promise.all([
-      requestJson<{ feeds: FeedRecipe[] }>("/api/feeds"),
-      requestJson<{ health: Record<string, FeedHealth> }>("/api/feed-health").catch(() => ({ health: {} }))
-    ]);
-    setFeeds(feedPayload.feeds);
-    setFeedHealth(healthPayload.health);
+    const browserFeeds = readBrowserFeeds();
+    try {
+      const [feedPayload, healthPayload] = await Promise.all([
+        requestJson<{ feeds: FeedRecipe[] }>("/api/feeds"),
+        requestJson<{ health: Record<string, FeedHealth> }>("/api/feed-health").catch(() => ({ health: {} }))
+      ]);
+      setFeeds(mergeFeeds(feedPayload.feeds, browserFeeds));
+      setFeedHealth(healthPayload.health);
+    } catch {
+      setFeeds(browserFeeds);
+      setFeedHealth({});
+    }
   }, []);
 
   const loadPrivacy = useCallback(async () => {
@@ -351,6 +458,16 @@ export function RssBuilderClient() {
     setBusy("Saving");
     setMessage(null);
     try {
+      if (isBrowserFeedId(activeFeedId)) {
+        const feed = saveBrowserFeed(source, activeFeedId);
+        setActiveFeedId(feed.id);
+        setLastSavedUrl(adHocUrlForSource(feed));
+        setSource(cloneSource(feed));
+        await loadFeeds();
+        showMessage("Saved in this browser.");
+        return;
+      }
+
       const payload = await requestJson<{ feed: FeedRecipe; rssUrl: string }>(activeFeedId ? `/api/feeds/${activeFeedId}` : "/api/feeds", {
         method: activeFeedId ? "PUT" : "POST",
         headers: { "Content-Type": "application/json" },
@@ -362,7 +479,16 @@ export function RssBuilderClient() {
       await loadFeeds();
       showMessage("Feed saved.");
     } catch (error) {
-      showMessage(error instanceof Error ? error.message : "Could not save feed.", "error");
+      if (isStorageSetupError(error)) {
+        const feed = saveBrowserFeed(source, activeFeedId);
+        setActiveFeedId(feed.id);
+        setLastSavedUrl(adHocUrlForSource(feed));
+        setSource(cloneSource(feed));
+        await loadFeeds();
+        showMessage("Saved in this browser. Add Upstash Redis for permanent hosted /rss URLs.");
+      } else {
+        showMessage(error instanceof Error ? error.message : "Could not save feed.", "error");
+      }
     } finally {
       setBusy("");
     }
@@ -372,6 +498,19 @@ export function RssBuilderClient() {
     async (id: string) => {
       setBusy("Loading");
       try {
+        if (isBrowserFeedId(id)) {
+          const feed = browserFeedById(id);
+          if (!feed) throw new Error("Browser-saved feed was not found.");
+          setActiveFeedId(feed.id);
+          setSource(cloneSource(feed));
+          setSelectionSamples({});
+          setBuilderHtml("");
+          setPreview(null);
+          setLastSavedUrl(adHocUrlForSource(feed));
+          showMessage("Browser-saved feed loaded.");
+          return;
+        }
+
         const payload = await requestJson<{ feed: FeedRecipe }>(`/api/feeds/${id}`);
         setActiveFeedId(payload.feed.id);
         setSource(cloneSource(payload.feed));
@@ -393,6 +532,19 @@ export function RssBuilderClient() {
     if (!activeFeedId) return;
     setBusy("Deleting");
     try {
+      if (isBrowserFeedId(activeFeedId)) {
+        deleteBrowserFeed(activeFeedId);
+        setActiveFeedId(null);
+        setSource(cloneSource());
+        setSelectionSamples({});
+        setBuilderHtml("");
+        setPreview(null);
+        setLastSavedUrl("");
+        await loadFeeds();
+        showMessage("Browser-saved feed deleted.");
+        return;
+      }
+
       const response = await fetch(`/api/feeds/${activeFeedId}`, { method: "DELETE" });
       if (!response.ok) throw new Error(await responseError(response));
       setActiveFeedId(null);
@@ -414,6 +566,29 @@ export function RssBuilderClient() {
     async (id: string) => {
       setFeedHealth((current) => ({ ...current, [id]: { id, status: "unknown", issues: [] } }));
       try {
+        if (isBrowserFeedId(id)) {
+          const feed = browserFeedById(id);
+          if (!feed) throw new Error("Browser-saved feed was not found.");
+          const payload = await requestJson<{ result: ExtractionResult; rssUrl: string }>("/api/preview", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(feed)
+          });
+          const health: FeedHealth = {
+            id,
+            status: payload.result.items.length > 0 && !payload.result.blocked ? "ok" : "warning",
+            checkedAt: new Date().toISOString(),
+            itemCount: payload.result.items.length,
+            strategy: payload.result.strategy,
+            statusCode: payload.result.status,
+            finalUrl: payload.result.finalUrl,
+            issues: payload.result.issues.map((issue) => issue.message)
+          };
+          setFeedHealth((current) => ({ ...current, [id]: health }));
+          showMessage(`${healthLabel(health)}: ${healthSummary(health)}`, health.status === "error" ? "error" : "info");
+          return;
+        }
+
         const payload = await requestJson<{ health: FeedHealth }>(`/api/feeds/${id}/test`, { method: "POST" });
         setFeedHealth((current) => ({ ...current, [id]: payload.health }));
         showMessage(`${healthLabel(payload.health)}: ${healthSummary(payload.health)}`, payload.health.status === "error" ? "error" : "info");
@@ -535,8 +710,14 @@ export function RssBuilderClient() {
   async function exportBackup() {
     try {
       const response = await fetch("/api/export");
-      if (!response.ok) throw new Error(await responseError(response));
-      const blob = await response.blob();
+      let serverFeeds: FeedRecipe[] = [];
+      if (response.ok) {
+        const payload = (await response.json()) as { feeds?: FeedRecipe[] };
+        serverFeeds = Array.isArray(payload.feeds) ? payload.feeds : [];
+      }
+      const blob = new Blob([`${JSON.stringify({ version: 1, feeds: mergeFeeds(serverFeeds, readBrowserFeeds()) }, null, 2)}\n`], {
+        type: "application/json"
+      });
       const url = URL.createObjectURL(blob);
       const link = document.createElement("a");
       link.href = url;
@@ -552,11 +733,16 @@ export function RssBuilderClient() {
     if (!file) return;
     try {
       const payload = JSON.parse(await file.text());
-      await requestJson("/api/import", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ feeds: payload.feeds || [], mode: "merge" })
-      });
+      try {
+        await requestJson("/api/import", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ feeds: payload.feeds || [], mode: "merge" })
+        });
+      } catch (error) {
+        if (!isStorageSetupError(error)) throw error;
+        writeBrowserFeeds(mergeFeeds(readBrowserFeeds(), Array.isArray(payload.feeds) ? payload.feeds.filter(isFeedRecipeLike) : []));
+      }
       await loadFeeds();
       showMessage("Backup imported.");
     } catch {

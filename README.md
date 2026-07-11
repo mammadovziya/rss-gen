@@ -62,7 +62,7 @@ BROWSER_WS_ENDPOINT=wss://your-browser-provider.example
 BROWSER_WS_MODE=cdp
 ```
 
-Without Redis, Vercel can still build and preview pages, but saved feed recipes are not durable. Without a remote browser endpoint, static extraction still works; browser mode is best kept for Docker/local runs or a hosted browser service.
+Without Redis, Vercel can still build, preview pages, and save feed recipes in the user's browser. Browser-saved recipes use generated `/feed.xml?...` URLs and are private to that browser. Add Redis when you want durable hosted recipes with stable `/rss/<feed-id>.xml` URLs. Without a remote browser endpoint, static extraction still works; browser mode is best kept for Docker/local runs or a hosted browser service.
 
 CLI deployment:
 

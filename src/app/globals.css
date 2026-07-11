@@ -16,6 +16,10 @@
   --ok: #6ee7b7;
   --focus: rgba(255, 255, 255, 0.22);
   --shadow: 0 24px 80px rgba(0, 0, 0, 0.42);
+  --grid-major: 146px;
+  --grid-minor: 52px;
+  --grid-major-line: rgba(255, 255, 255, 0.1);
+  --grid-minor-line: rgba(255, 255, 255, 0.035);
 }
 
 * {
@@ -55,10 +59,7 @@ a {
   position: relative;
   min-height: 100dvh;
   isolation: isolate;
-  background:
-    radial-gradient(circle at 50% 42%, rgba(255, 255, 255, 0.04), transparent 28%),
-    linear-gradient(180deg, rgba(255, 255, 255, 0.02), transparent 45%),
-    var(--bg);
+  background: var(--bg);
 }
 
 .app-frame.light-mode {
@@ -76,6 +77,8 @@ a {
   --accent-ink: #f6f7f8;
   --focus: rgba(0, 0, 0, 0.12);
   --shadow: 0 24px 70px rgba(20, 24, 30, 0.12);
+  --grid-major-line: rgba(0, 0, 0, 0.1);
+  --grid-minor-line: rgba(0, 0, 0, 0.035);
 }
 
 .grid-bg {
@@ -83,15 +86,16 @@ a {
   inset: 0;
   z-index: -2;
   background-image:
-    linear-gradient(var(--line) 1px, transparent 1px),
-    linear-gradient(90deg, var(--line) 1px, transparent 1px),
-    linear-gradient(rgba(255, 255, 255, 0.035) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255, 255, 255, 0.035) 1px, transparent 1px);
+    linear-gradient(var(--grid-major-line) 1px, transparent 1px),
+    linear-gradient(90deg, var(--grid-major-line) 1px, transparent 1px),
+    linear-gradient(var(--grid-minor-line) 1px, transparent 1px),
+    linear-gradient(90deg, var(--grid-minor-line) 1px, transparent 1px);
   background-size:
-    146px 146px,
-    146px 146px,
-    52px 52px,
-    52px 52px;
+    var(--grid-major) var(--grid-major),
+    var(--grid-major) var(--grid-major),
+    var(--grid-minor) var(--grid-minor),
+    var(--grid-minor) var(--grid-minor);
+  background-position: 0 0;
   mask-image: linear-gradient(to bottom, black 0%, black 76%, transparent 100%);
 }
 
